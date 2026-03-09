@@ -1,0 +1,40 @@
+groups:
+  - name: system_alerts
+    rules:
+      - alert: HighCpuUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 2 minutes."
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 75
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 75% for more than 2 minutes."
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_free_bytes{mountpoint="/"}) / node_filesystem_size_bytes{mountpoint="/"} * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 90% for more than 2 minutes."
+
+  - name: container_alerts
+    rules:
+      - alert: ContainerRestarted
+        expr: count(changes(container_last_seen{name!=""}[15m]) > 0) > 1
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container restarted on {{ $labels.instance }}"
+          description: "A container has restarted in the last 15 minutes."
