@@ -76,29 +76,6 @@ services:
     networks:
       - monitoring
     restart: always
-
-  loki:
-    image: grafana/loki:2.9.4
-    container_name: loki
-    volumes:
-      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
-    ports:
-      - "3100:3100"
-    networks:
-      - monitoring
-    restart: always
-
-  promtail:
-    image: grafana/promtail:latest
-    container_name: promtail
-    volumes:
-      - /var/log:/var/log
-      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - monitoring
-    restart: always
-
 networks:
   monitoring:
     driver: bridge

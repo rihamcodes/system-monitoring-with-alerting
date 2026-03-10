@@ -38,3 +38,16 @@ groups:
         annotations:
           summary: "Container restarted on {{ $labels.instance }}"
           description: "A container has restarted in the last 15 minutes."
+
+# Force a test alert (easiest method)
+# Edit your alert_rules.yml and temporarily create a test alert:
+
+  - name: test-alerts
+    rules:
+    - alert: TestAlert
+      expr: vector(1)
+      for: 10s
+      labels:
+        severity: critical
+      annotations:
+        summary: "Test alert is firing"

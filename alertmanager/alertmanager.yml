@@ -1,18 +1,47 @@
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'rihamahamed650@gmail.com'
+  smtp_auth_username: 'rihamahamed650@gmail.com'
+  smtp_auth_password: 'uffa xnfx hqwx rqld'
+  smtp_require_tls: true
+
 route:
   group_by: ['alertname']
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 1h
-  receiver: 'web.hook'
+  receiver: 'email-alert'
 
 receivers:
-  - name: 'web.hook'
-    webhook_configs:
-      - url: 'http://127.0.0.1:5001/'
+  - name: 'email-alert'
+    email_configs:
+      - to: 'rihamahamed650@gmail.com'
+        send_resolved: true
 
 inhibit_rules:
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'warning'
-    equal: ['alertname', 'dev', 'instance']
+    equal: ['alertname','dev','instance']
+
+
+
+# route:
+#   group_by: ['alertname']
+#   group_wait: 30s
+#   group_interval: 5m
+#   repeat_interval: 1h
+#   receiver: 'web.hook'
+
+# receivers:
+#   - name: 'web.hook'
+#     webhook_configs:
+#       - url: 'http://127.0.0.1:5001/'
+
+# inhibit_rules:
+#   - source_match:
+#       severity: 'critical'
+#     target_match:
+#       severity: 'warning'
+#     equal: ['alertname', 'dev', 'instance']
