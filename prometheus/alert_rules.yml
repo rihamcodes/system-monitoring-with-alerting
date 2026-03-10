@@ -51,3 +51,4 @@ groups:
         severity: critical
       annotations:
         summary: "Test alert is firing"
+        description: "This is a test alert to check the alerting system is working properly."

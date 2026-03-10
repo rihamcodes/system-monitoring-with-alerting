@@ -4,6 +4,7 @@ global:
   smtp_auth_username: 'rihamahamed650@gmail.com'
   smtp_auth_password: 'uffa xnfx hqwx rqld'
   smtp_require_tls: true
+  smtp_hello: 'gmail.com'
 
 route:
   group_by: ['alertname']
