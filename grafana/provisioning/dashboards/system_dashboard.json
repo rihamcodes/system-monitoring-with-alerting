@@ -204,8 +204,8 @@
             "type": "gauge",
             "targets": [
                 {
-                    "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\"})",
-                    "legendFormat": "Root FS",
+                    "expr": "100 - (node_filesystem_avail_bytes{fstype=\"9p\", mountpoint=\"/mnt/host/c\"} / node_filesystem_size_bytes{fstype=\"9p\", mountpoint=\"/mnt/host/c\"} * 100)",
+                    "legendFormat": "Disk",
                     "refId": "A"
                 }
             ]
