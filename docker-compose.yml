@@ -49,7 +49,7 @@ services:
     restart: always
 
   cadvisor:
-    image: ghcr.io/google/cadvisor:0.56.2     # ← (ghcr.io) Best for Ubuntu 24.04 and above
+    image: ghcr.io/google/cadvisor:0.56.2 # ← (ghcr.io) Best for Ubuntu 24.04 and above. gcr.io image is deprecated.
     container_name: cadvisor
     privileged: true
     devices:
@@ -63,7 +63,7 @@ services:
     ports:
       - "8080:8080"
     command:
-      # - --docker_only=true
+      # - --docker_only=true # Uncomment to only collect docker containers metrics. (need to comment 'metric_relabel_configs:' filtering section in prometheus.yml)
       - --housekeeping_interval=15s
       - --store_container_labels=true
     networks:

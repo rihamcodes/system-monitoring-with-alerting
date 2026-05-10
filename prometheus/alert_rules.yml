@@ -28,6 +28,15 @@ groups:
           summary: "High Disk usage on {{ $labels.instance }}"
           description: "Disk usage is above 90% for more than 2 minutes."
 
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
   - name: container_alerts
     rules:
       - alert: ContainerRestarted
