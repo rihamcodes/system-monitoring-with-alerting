@@ -1,0 +1,100 @@
+global:
+  # === EMAIL CONFIG ===
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: '${SMTP_FROM}'
+  smtp_auth_username: '${SMTP_AUTH_USERNAME}'
+  smtp_auth_password: '${SMTP_AUTH_PASSWORD}'
+  smtp_require_tls: true
+  smtp_hello: 'gmail.com'
+
+  # === SLACK CONFIG ===
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+# === ROUTE CONFIG (Defines where alerts go) ===
+route:
+  receiver: 'email-alert'
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 10m
+  repeat_interval: 4h
+  
+  routes:
+    # Critical alerts go to BOTH email and Slack
+    - match:
+        severity: critical
+      receiver: 'email-and-slack'
+      continue: true
+    
+    # Warning alerts go to Slack only
+    - match:
+        severity: warning
+      receiver: 'slack-only'
+
+# === RECEIVERS (Define the destinations) ===
+
+receivers:
+  # Your existing email-only receiver
+  - name: 'email-alert'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        send_resolved: true
+        headers:
+          Subject: '[Monitoring] {{ .GroupLabels.alertname }}'
+
+  # Slack + Email combined receiver
+  - name: 'email-and-slack'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        send_resolved: true 
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - channel: '${SLACK_CHANNEL}'
+        send_resolved: true 
+        title: '🚨 {{ .GroupLabels.alertname }}'
+        text: |
+          *Severity:* {{ .CommonLabels.severity }}
+          *Instance:* {{ .CommonLabels.instance }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+        color: 'danger'
+
+  # Slack-only receiver  
+  - name: 'slack-only'
+    slack_configs:
+      - channel: '${SLACK_CHANNEL}'
+        send_resolved: true 
+        title: '⚠️ {{ .GroupLabels.alertname }}'
+        text: |
+          *Severity:* {{ .CommonLabels.severity }}
+          *Instance:* {{ .CommonLabels.instance }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+        color: 'warning'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname','dev','instance']
+
+#====================================================================
+# route:
+#   group_by: ['alertname']
+#   group_wait: 30s
+#   group_interval: 5m
+#   repeat_interval: 1h
+#   receiver: 'web.hook'
+
+# receivers:
+#   - name: 'web.hook'
+#     webhook_configs:
+#       - url: 'http://127.0.0.1:5001/'
+
+# inhibit_rules:
+#   - source_match:
+#       severity: 'critical'
+#     target_match:
+#       severity: 'warning'
+#     equal: ['alertname', 'dev', 'instance']

@@ -1,0 +1,18 @@
+# === Secrets — NEVER commit these ===
+.env
+
+# === Generated configs (built at container startup from templates) ===
+# alertmanager/alertmanager.yml is overwritten at runtime — safe to exclude
+# Uncomment the line below if you want git to ignore the runtime-generated file:
+alertmanager/alertmanager.yml
+
+# === OS & Editor ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# === Docker volumes / local data ===
+prometheus_data/
+grafana_data/

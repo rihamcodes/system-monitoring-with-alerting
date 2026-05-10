@@ -54,7 +54,7 @@ groups:
   - name: test-alerts
     rules:
     - alert: TestAlert
-      expr: vector(1)
+      expr: up{job="node-exporter"} == 1
       for: 10s
       labels:
         severity: critical
