@@ -1,0 +1,72 @@
+server:
+  http_listen_port: 9080
+  log_level: warn
+
+# ── Where to push logs ─────────────────────────────────────────────────────────
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+# ── Positions file (tracks read offsets so logs aren't re-sent on restart) ─────
+positions:
+  filename: /tmp/positions.yaml
+
+# ── Scrape configs ─────────────────────────────────────────────────────────────
+scrape_configs:
+
+  # ── 1. Docker container logs ─────────────────────────────────────────────────
+  # Auto-discovers all running containers via their log files.
+  # Labels: job, container (name), stream (stdout/stderr)
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Use the Docker container name as the "container" label
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container
+      # Tag all docker logs under job="docker"
+      - target_label: job
+        replacement: docker
+      # Keep the log stream (stdout / stderr)
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: stream
+      # Keep the image name for context
+      - source_labels: ['__meta_docker_container_image_name']
+        target_label: image
+
+  # ── 2. Host system logs (/var/log) ───────────────────────────────────────────
+  - job_name: varlogs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          host: monitoring-host
+          __path__: /var/log/{syslog,auth.log,kern.log,dpkg.log,apt/history.log}
+
+    # Parse the standard syslog timestamp format for accurate log ordering
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<process>[^:]+):\s+(?P<message>.*)'
+      - labels:
+          hostname:
+          process:
+      - timestamp:
+          source: timestamp
+          format: 'Jan _2 15:04:05'
+
+  # ── 3. Journal logs (systemd) ─────────────────────────────────────────────────
+  - job_name: journal
+    journal:
+      max_age: 12h
+      labels:
+        job: journal
+        host: monitoring-host
+    relabel_configs:
+      # Expose systemd unit as label
+      - source_labels: ['__journal__systemd_unit']
+        target_label: unit
+      # Expose syslog identifier (process name)
+      - source_labels: ['__journal_syslog_identifier']
+        target_label: process

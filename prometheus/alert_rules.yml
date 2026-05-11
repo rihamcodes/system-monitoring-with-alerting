@@ -51,13 +51,13 @@ groups:
 # Force a test alert (easiest method)
 # Edit your alert_rules.yml and temporarily create a test alert:
 
-  - name: test-alerts
-    rules:
-    - alert: TestAlert
-      expr: up{job="node-exporter"} == 1
-      for: 10s
-      labels:
-        severity: critical
-      annotations:
-        summary: "Test alert is firing"
-        description: "This is a test alert to check the alerting system is working properly."
+  # - name: test-alerts
+  #   rules:
+  #   - alert: TestAlert
+  #     expr: up{job="node-exporter"} == 1
+  #     for: 10s
+  #     labels:
+  #       severity: critical
+  #     annotations:
+  #       summary: "Test alert is firing"
+  #       description: "This is a test alert to check the alerting system is working properly."
