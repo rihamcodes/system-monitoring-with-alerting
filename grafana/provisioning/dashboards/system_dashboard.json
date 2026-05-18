@@ -1673,7 +1673,7 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{job=\"containers\"} |~ \"(?i)(error|warn|fatal)\"",
+          "expr": "{job=\"docker\"} |~ \"(?i)(error|warn|fatal)\"",
           "legendFormat": "",
           "maxLines": 50,
           "refId": "A"
