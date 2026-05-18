@@ -1,54 +1,97 @@
-docd# System Monitoring and Alerting Platform
+# 🛡️ System Monitoring & Alerting Platform
 
-This project provides a professional, production-ready monitoring stack using Prometheus, Grafana, and Alertmanager.
+A production-ready monitoring, log aggregation, and alerting stack built with **Docker Compose**, **Prometheus**, **Loki**, **Grafana**, **Alertmanager**, and an integrated **Nginx Reverse Proxy** gateway.
 
-## 🚀 Services
-- **Prometheus**: Metrics collection and alerting rules evaluation. (Port: 9090)
-- **Grafana**: Visual dashboards for metrics visualization. (Port: 3000)
-- **Alertmanager**: Routing and notifying on alerts. (Port: 9093)
-- **Node Exporter**: Host hardware and OS metrics. (Port: 9100)
-- **cAdvisor**: Container resource usage and performance metrics. (Port: 8080)
+---
 
-## 🛠️ Prerequisites
-- Docker and Docker Compose installed.
+## 🏗️ Architecture
 
-## 🏃 Quick Start
-1. Clone this repository.
-2. Run the stack:
-   ```bash
-   docker compose up -d
-   ```
-3. Access the services:
-   - **Grafana**: http://localhost:3000 (Default login: `admin`/`admin`)
-   - **Prometheus**: http://localhost:9090
-   - **Alertmanager**: http://localhost:9093
+The stack consists of collection agents (exporters), log shippers, central storage databases, a visualization dashboard, and a secure front-facing reverse proxy.
 
-## 📊 Dashboards
-Log into Grafana, navigate to **Dashboards** -> **Browse**. The Prometheus datasource is auto-mapped. You can import community dashboards (e.g., ID 1860 for Node Exporter) to get started quickly.
+```mermaid
+graph TD
+    User([User / Admin]) -->|Port 80/443| Nginx[Nginx Reverse Proxy]
+    
+    Nginx -->|Port 3000| Grafana[Grafana Dashboard]
+    Nginx -->|Port 9090| Prometheus[Prometheus Metrics]
+    Nginx -->|Port 9093| Alertmanager[Alertmanager]
 
-## 🔔 Alerting Logic
-Alerts are defined in `prometheus/alert_rules.yml`.
-- **High CPU**: > 80% for 2 mins.
-- **High Memory**: > 75% for 2 mins.
-- **High Disk**: > 90% for 2 mins.
-- **Container Restarts**: Detected within a 15 min window.
+    Grafana --> Prometheus
+    Grafana --> Loki[Loki Logs]
 
-## 📂 Project Structure
-```text
-.
-├── docker-compose.yml
-├── Makefile
-├── prometheus/
-│   ├── prometheus.yml
-│   └── alert_rules.yml
-├── alertmanager/
-│   └── alertmanager.yml
-└── grafana/
-    └── provisioning/
+    Prometheus --> NodeExporter[Node Exporter]
+    Prometheus --> cAdvisor[cAdvisor]
+    Promtail[Promtail] --> Loki
+    
+    Prometheus --> Alertmanager
+    Alertmanager --> Email[Email / SMTP]
+    Alertmanager --> Slack[Slack Webhook]
 ```
 
+---
+
+## 🚀 Services & Ports
+
+Once running, the services can be accessed securely through Nginx or directly (if configured):
+
+| Service | Internal Port | External Path / URL | Purpose |
+| :--- | :---: | :--- | :--- |
+| **Nginx** | `80`, `443` | `http://localhost/` | Secure edge gateway & SSL termination |
+| **Grafana** | `3000` | `http://localhost/grafana` | Single pane of glass for dashboards & logs |
+| **Prometheus** | `9090` | `http://localhost/prometheus` | Metric collection and alert evaluation |
+| **Alertmanager** | `9093` | `http://localhost/alertmanager` | Routing, silencing, and grouping alerts |
+| **Loki** | `3100` | *Internal Only* | High-efficiency log database |
+| **Promtail** | `9080` | *Internal Only* | Scrapes host/container logs and ships to Loki |
+| **Node Exporter**| `9100` | *Internal Only* | System hardware metrics (CPU, RAM, Disk) |
+| **cAdvisor** | `8080` | *Internal Only* | Docker container resource usage metrics |
+
+---
+
+## ⚙️ Quick Start
+
+### 1. Configure Secrets
+1. Copy the environment template:
+   ```bash
+   cp .env.example .env
+   ```
+2. Open `.env` and fill in your configuration:
+   - Email/SMTP credentials for notifications
+   - Slack webhook URL and alert channel
+   - Grafana default admin password
+
+### 2. Deploy the Stack
+Start all services in the background using the Makefile:
+```bash
+make up
+```
+This automatically compiles environment variables into the Alertmanager configuration and starts the containers.
+
+---
+
+## 🔒 Nginx Reverse Proxy & SSL (High-Level)
+
+Nginx is designated as the secure gateway of the stack. By funneling all traffic through Nginx:
+*   **Single Port Access**: You only need to expose public ports `80` (HTTP) and `443` (HTTPS) to the outside world, keeping the underlying service ports (`3000`, `9090`, `9093`) private.
+*   **Path/Subdomain Routing**: Incoming requests are reverse-proxied transparently to the corresponding backend service (e.g., routing `monitor.example.com/grafana` to `grafana:3000`).
+*   **SSL/TLS Termination**: Nginx can easily handle HTTPS encryption using Let's Encrypt (Certbot) certificates, ensuring all dashboards and configurations are encrypted in transit.
+
+---
+
+## 🔔 Alerting & Logs
+
+*   **Alert Rules (`prometheus/alert_rules.yml`)**: Pre-configured alerts monitor system CPU (>80%), Memory (>75%), Disk (>90%), instance reachability, and container restarts.
+*   **Routing Logic**: Warning alerts are routed to **Slack** to prevent inbox fatigue, while Critical alerts go to both **Slack** and **Email**.
+*   **Log Ingestion**: Promtail automatically tails host logs in `/var/log` and active Docker container output, shipping them to Loki to be analyzed alongside metrics inside Grafana.
+
+---
+
 ## 🛠️ Management Commands
-- `docker compose up -d`: Start all services.
-- `docker compose down`: Stop services.
-- `docker compose logs -f`: View service logs.
-- `docker compose down -v`: Reset environment (removes data volumes).
+
+| Command | Action |
+| :--- | :--- |
+| `make up` | Start the stack in background |
+| `make down` | Stop the stack |
+| `make restart` | Restart all services |
+| `make ps` | List active containers |
+| `make logs` | Tail real-time service logs |
+| `make clean` | Stop stack and erase all data volumes |
