@@ -1,97 +1,139 @@
-# 🛡️ System Monitoring & Alerting Platform
+# system-monitoring-with-alerting
 
-A production-ready monitoring, log aggregation, and alerting stack built with **Docker Compose**, **Prometheus**, **Loki**, **Grafana**, **Alertmanager**, and an integrated **Nginx Reverse Proxy** gateway.
+A containerized system monitoring, log aggregation, and alerting stack deployed locally using Docker Compose — featuring real-time hardware metrics scraping, centralized Docker/host log shipper pipeline, dynamic configuration secrets handling, and automated Slack/Email alert routing.
+
+Note: The focus of this repository is the DevOps and Infrastructure setup: the container networking, Prometheus scrape jobs, Promtail log pipelines, dynamic Alertmanager secret wrapping, and Grafana dashboard provisioning.
 
 ---
 
-## 🏗️ Architecture
+🚀 Observability & Alerting Flow
+```text
+Host Hardware & Containers (Node Exporter, cAdvisor, Log Files)
+        │
+        ├── Metrics scraped by Prometheus (Port 9090)
+        │         │
+        │         └── If rule fires → Trigger Alertmanager (Port 9093)
+        │                                 │
+        │                                 ├── Warning → Slack Webhook
+        │                                 └── Critical → Slack + Gmail SMTP
+        │
+        └── Logs shipped by Promtail ──> Ingested by Loki (Port 3100)
+                  │
+                  ▼
+       Grafana Queries Databases (Port 3000)
+                  │
+                  ▼
+       Unified Custom Visual Dashboard
+```
+Every service runs as a container under a single Docker bridge network. Prometheus scrapes host stats from Node Exporter and container stats from cAdvisor every 15 seconds. If thresholds (such as CPU, Memory, or Disk usage) are breached, Prometheus pushes alerts to Alertmanager. Alertmanager resolves env variables dynamically, groups the alerts, and routes warnings to Slack and critical events to both Slack and Email. Meanwhile, Promtail tails container stdout, host logs, and systemd journals, shipping them directly to Loki, allowing Grafana to map log streams next to metric charts.
 
-The stack consists of collection agents (exporters), log shippers, central storage databases, a visualization dashboard, and a secure front-facing reverse proxy.
+---
 
-```mermaid
-graph TD
-    User([User / Admin]) -->|Port 80/443| Nginx[Nginx Reverse Proxy]
-    
-    Nginx -->|Port 3000| Grafana[Grafana Dashboard]
-    Nginx -->|Port 9090| Prometheus[Prometheus Metrics]
-    Nginx -->|Port 9093| Alertmanager[Alertmanager]
+🛠️ Tech Stack
+| Layer | Tools |
+| :--- | :--- |
+| **Metrics Collector** | Prometheus v2.51.2 |
+| **Log Database** | Grafana Loki v3.0.0 |
+| **Log Shipper** | Grafana Promtail v3.0.0 |
+| **Host Exporter** | Node Exporter v1.8.0 |
+| **Container Exporter** | cAdvisor v0.56.2 (ghcr.io image) |
+| **Visualization** | Grafana v10.4.2 |
+| **Alerting Manager** | Alertmanager v0.27.0 |
+| **Secrets & Routing** | Slack Webhook API, Gmail SMTP, Bash config wrapper |
+| **Orchestration** | Docker, Docker Compose, Makefile |
 
-    Grafana --> Prometheus
-    Grafana --> Loki[Loki Logs]
+---
 
-    Prometheus --> NodeExporter[Node Exporter]
-    Prometheus --> cAdvisor[cAdvisor]
-    Promtail[Promtail] --> Loki
-    
-    Prometheus --> Alertmanager
-    Alertmanager --> Email[Email / SMTP]
-    Alertmanager --> Slack[Slack Webhook]
+🔧 What I Built (DevOps Scope)
+### 1. Prometheus Configurations & Rules (`prometheus/`)
+*   `prometheus.yml` — Sets up global scrape intervals and jobs. Employs `metric_relabel_configs` to drop metrics originating from non-Docker cgroups collected by cAdvisor, keeping only container-specific targets.
+*   `alert_rules.yml` — Implements custom alerting logic for system health: CPU (>80%), Memory (>75%), Disk (>90%), instance heartbeat status (`InstanceDown`), and container lifecycle (`ContainerRestarted`).
+
+### 2. Alertmanager Secrets Wrapper (`alertmanager/`)
+*   `alertmanager.yml.template` — Defines the alerting tree: groups notifications, configures SMTP for Gmail TLS and Slack Webhooks, and maps alert severity to specific receivers.
+*   `generate-config.sh` — A custom container entrypoint shell script. Since Alertmanager doesn't natively support environment variables in its config file, this script reads `.env` variables at runtime, substitutes them into the template, and boots the Alertmanager process.
+
+### 3. Log Ingestion Pipeline (`loki/` & `promtail/`)
+*   `loki-config.yml` — Configures Loki with an active 30-day retention schema (`retention_period: 720h`) and compactor worker limits to keep disk usage light.
+*   `promtail-config.yml` — Scrapes three log targets: Docker logs (`/var/run/docker.sock` with dynamic container name label relabeling), host system logs (`/var/log/*`), and systemd journal units.
+
+### 4. Grafana Automatic Provisioning (`grafana/`)
+*   `datasources.yml` — Automatically registers Prometheus and Loki as default datasources on boot so they don't have to be configured manually in the UI.
+*   `dashboard_provider.yml` & `system_dashboard.json` — Automatically imports a customized 18-panel system dashboard on startup, displaying host CPU/Memory/Disk/Network, Docker resources, and real-time logs.
+
+### 5. Deployment Orchestration (`docker-compose.yml` & `Makefile`)
+*   `docker-compose.yml` — Configures networks, volumes, environments, and mounts host directories `/proc`, `/sys`, and `/var/run/docker.sock` as read-only.
+*   `Makefile` — Automates commands for managing the stack (`up`, `down`, `restart`, `ps`, `logs`, `clean`).
+
+---
+
+📂 Repository Structure
+```text
+.
+├── alertmanager/
+│   ├── alertmanager.yml.template  # Config template with env placeholders
+│   └── generate-config.sh        # Entrypoint script for env injection
+├── grafana/
+│   └── provisioning/
+│       ├── dashboards/
+│       │   ├── dashboard_provider.yml  # Registers folder scan location
+│       │   └── system_dashboard.json   # 18-panel visual dashboard
+│       └── datasources/
+│           └── datasources.yml         # Auto-configures Prometheus/Loki
+├── loki/
+│   └── loki-config.yml            # Loki storage and retention rules
+├── prometheus/
+│   ├── alert_rules.yml            # Heartbeat, CPU, Memory, Disk rules
+│   └── prometheus.yml             # Scrape jobs & metric relabel filters
+├── promtail/
+│   └── promtail-config.yml        # Docker, host syslog, & journal configurations
+├── .env.example                   # Environment configuration template
+├── docker-compose.yml             # Main Docker Compose manifest
+├── Makefile                       # Operations commands wrapper
+└── README.md
 ```
 
 ---
 
-## 🚀 Services & Ports
+▶️ Running Locally
+1. Clone the repository and navigate inside:
+   ```bash
+   git clone https://github.com/rihamcodes/system-monitoring-with-alerting.git
+   cd system-monitoring-with-alerting
+   ```
 
-Once running, the services can be accessed securely through Nginx or directly (if configured):
-
-| Service | Internal Port | External Path / URL | Purpose |
-| :--- | :---: | :--- | :--- |
-| **Nginx** | `80`, `443` | `http://localhost/` | Secure edge gateway & SSL termination |
-| **Grafana** | `3000` | `http://localhost/grafana` | Single pane of glass for dashboards & logs |
-| **Prometheus** | `9090` | `http://localhost/prometheus` | Metric collection and alert evaluation |
-| **Alertmanager** | `9093` | `http://localhost/alertmanager` | Routing, silencing, and grouping alerts |
-| **Loki** | `3100` | *Internal Only* | High-efficiency log database |
-| **Promtail** | `9080` | *Internal Only* | Scrapes host/container logs and ships to Loki |
-| **Node Exporter**| `9100` | *Internal Only* | System hardware metrics (CPU, RAM, Disk) |
-| **cAdvisor** | `8080` | *Internal Only* | Docker container resource usage metrics |
-
----
-
-## ⚙️ Quick Start
-
-### 1. Configure Secrets
-1. Copy the environment template:
+2. Copy the environment file template:
    ```bash
    cp .env.example .env
    ```
-2. Open `.env` and fill in your configuration:
-   - Email/SMTP credentials for notifications
-   - Slack webhook URL and alert channel
-   - Grafana default admin password
 
-### 2. Deploy the Stack
-Start all services in the background using the Makefile:
-```bash
-make up
-```
-This automatically compiles environment variables into the Alertmanager configuration and starts the containers.
+3. Open `.env` and fill in your credentials:
+   *   `SMTP_FROM` & `SMTP_AUTH_USERNAME` (your Gmail address)
+   *   `SMTP_AUTH_PASSWORD` (Gmail App Password)
+   *   `SLACK_WEBHOOK_URL` & `SLACK_CHANNEL` (Slack channel destination)
+   *   `GF_SECURITY_ADMIN_PASSWORD` (Grafana admin login password)
 
----
-
-## 🔒 Nginx Reverse Proxy & SSL (High-Level)
-
-Nginx is designated as the secure gateway of the stack. By funneling all traffic through Nginx:
-*   **Single Port Access**: You only need to expose public ports `80` (HTTP) and `443` (HTTPS) to the outside world, keeping the underlying service ports (`3000`, `9090`, `9093`) private.
-*   **Path/Subdomain Routing**: Incoming requests are reverse-proxied transparently to the corresponding backend service (e.g., routing `monitor.example.com/grafana` to `grafana:3000`).
-*   **SSL/TLS Termination**: Nginx can easily handle HTTPS encryption using Let's Encrypt (Certbot) certificates, ensuring all dashboards and configurations are encrypted in transit.
+4. Spin up the entire monitoring stack:
+   ```bash
+   make up
+   ```
+   Access the Grafana Dashboard locally at `http://localhost:3000` (default login: `admin` / your password).
 
 ---
 
-## 🔔 Alerting & Logs
-
-*   **Alert Rules (`prometheus/alert_rules.yml`)**: Pre-configured alerts monitor system CPU (>80%), Memory (>75%), Disk (>90%), instance reachability, and container restarts.
-*   **Routing Logic**: Warning alerts are routed to **Slack** to prevent inbox fatigue, while Critical alerts go to both **Slack** and **Email**.
-*   **Log Ingestion**: Promtail automatically tails host logs in `/var/log` and active Docker container output, shipping them to Loki to be analyzed alongside metrics inside Grafana.
+📈 What I Learned
+*   Deploying and networking a multi-service monitoring stack using Docker Compose.
+*   Collecting and parsing Docker container stdout logs, system logs, and systemd journals using Promtail.
+*   Injecting environment variables into applications that don't support native env-vars by writing custom container entrypoint shell wrappers.
+*   Optimizing Prometheus memory usage by writing metric relabel rules to filter and drop cgroup metrics from cAdvisor.
+*   Using Grafana provisioning to implement an "Observability-as-Code" dashboard setup.
+*   Writing PromQL queries to alert on system resource thresholds (CPU, memory, disk usage).
+*   Configuring Alertmanager routing trees and inhibition rules to route warning alerts to Slack and critical alerts to Email, muting warnings during system down times.
 
 ---
 
-## 🛠️ Management Commands
+👤 Author
+Riham Ahamed
 
-| Command | Action |
-| :--- | :--- |
-| `make up` | Start the stack in background |
-| `make down` | Stop the stack |
-| `make restart` | Restart all services |
-| `make ps` | List active containers |
-| `make logs` | Tail real-time service logs |
-| `make clean` | Stop stack and erase all data volumes |
+*   GitHub: [github.com/rihamcodes](https://github.com/rihamcodes)
+*   LinkedIn: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile) *(Update with your LinkedIn link)*
