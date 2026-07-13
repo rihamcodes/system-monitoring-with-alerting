@@ -29,19 +29,19 @@ Every service runs as a container under a single Docker bridge network. Promethe
 
 ---
 
-## 🛠️ Technology Stack & Container Architecture
+## 🛠️ Tech Stack
 
 All services are containerized inside a shared Docker bridge network named `monitoring`. The table below outlines each layer, the Docker image utilized, and the access port layout:
 
-| Layer | Tool & Docker Image | Container Name | Port Mapping | One-Line Description |
-| :--- | :--- | :--- | :--- | :--- |
-| **Visualization** | Grafana (`grafana/grafana:10.4.2`) | `grafana` | `3000:3000` (Public) | Unified UI console for querying dashboards and Loki logs. |
-| **Metrics Collector** | Prometheus (`prom/prometheus:v2.51.2`) | `prometheus` | `9090:9090` (Public) | Scrapes and stores metrics, and evaluates system alert rules. |
-| **Log Database** | Loki (`grafana/loki:3.0.0`) | `loki` | `3100:3100` (Public) | Aggregates and stores forwarded log streams from the shipper. |
-| **Log Shipper** | Promtail (`grafana/promtail:3.0.0`) | `promtail` | *Internal Only* | Discovers container files, syslogs, and journals to ship to Loki. |
-| **Host Exporter** | Node Exporter (`prom/node-exporter:v1.8.0`) | `node-exporter` | `9100:9100` (Public) | Exports raw CPU, memory, network, and disk metrics from the host. |
-| **Container Exporter**| cAdvisor (`ghcr.io/google/cadvisor:0.56.2`)| `cadvisor` | `8080:8080` (Public) | Monitors resource usage of active Docker containers on the host. |
-| **Alert Gateway** | Alertmanager (`prom/alertmanager:v0.27.0`) | `alertmanager` | `9093:9093` (Public) | Handles alert deduplication, inhibition, and email/Slack routing. |
+| Layer | Tool / Container Name (Docker Image) | Port Mapping | Description |
+| :--- | :--- | :--- | :--- |
+| **Visualization** | `grafana` (`grafana/grafana:10.4.2`) | `3000:3000` | A single pane of glass UI console configured to automatically load datasources and system metrics alongside Loki log panels. |
+| **Metrics Collector** | `prometheus` (`prom/prometheus:v2.51.2`) | `9090:9090` | Time-series database that scrapes metrics from targets and evaluates rules to trigger alerts based on defined thresholds. |
+| **Log Database** | `loki` (`grafana/loki:3.0.0`) | `3100:3100` | A highly efficient log database optimized for storing streams forwarded by Promtail to index logs by labels. |
+| **Log Shipper** | `promtail` (`grafana/promtail:3.0.0`) | *Internal Only* | A lightweight log shipping agent that tails container standard outputs, system log files, and systemd journals to push them into Loki. |
+| **Host Exporter** | `node-exporter` (`prom/node-exporter:v1.8.0`) | `9100:9100` | Exposes physical system hardware metrics from the host operating system including CPU, RAM, disk, and network stats. |
+| **Container Exporter** | `cadvisor` (`ghcr.io/google/cadvisor:0.56.2`) | `8080:8080` | Collects, aggregates, and exports resource usage data and performance metrics directly from active Docker containers. |
+| **Alert Gateway** | `alertmanager` (`prom/alertmanager:v0.27.0`) | `9093:9093` | Deduplicates, groups, and routes active alerts to destination receivers (Email and Slack channels) based on alert labels. |
 
 ### Additional Tooling
 *   **Orchestration & Automation**: Docker Compose, Makefile
@@ -143,4 +143,4 @@ All services are containerized inside a shared Docker bridge network named `moni
 Riham Ahamed
 
 *   GitHub: [github.com/rihamcodes](https://github.com/rihamcodes)
-*   LinkedIn: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile) *(Update with your LinkedIn link)*
+*   LinkedIn: [linkedin.com/in/riham-ahamed-s](https://linkedin.com/in/riham-ahamed-s)
