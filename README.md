@@ -29,32 +29,24 @@ Every service runs as a container under a single Docker bridge network. Promethe
 
 ---
 
-## 🛠️ Technology Stack
-| Layer | Tools |
-| :--- | :--- |
-| **Metrics Collector** | Prometheus v2.51.2 |
-| **Log Database** | Grafana Loki v3.0.0 |
-| **Log Shipper** | Grafana Promtail v3.0.0 |
-| **Host Exporter** | Node Exporter v1.8.0 |
-| **Container Exporter** | cAdvisor v0.56.2 (ghcr.io image) |
-| **Visualization** | Grafana v10.4.2 |
-| **Alerting Manager** | Alertmanager v0.27.0 |
-| **Secrets & Routing** | Slack Webhook API, Gmail SMTP, Bash config wrapper |
-| **Orchestration** | Docker, Docker Compose, Makefile |
+## 🛠️ Technology Stack & Container Architecture
 
----
+All services are containerized inside a shared Docker bridge network named `monitoring`. The table below outlines each layer, the Docker image utilized, and the access port layout:
 
-## 🔌 Running Services & Port Access
+| Layer | Tool & Docker Image | Container Name | Port Mapping | One-Line Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Visualization** | Grafana (`grafana/grafana:10.4.2`) | `grafana` | `3000:3000` (Public) | Unified UI console for querying dashboards and Loki logs. |
+| **Metrics Collector** | Prometheus (`prom/prometheus:v2.51.2`) | `prometheus` | `9090:9090` (Public) | Scrapes and stores metrics, and evaluates system alert rules. |
+| **Log Database** | Loki (`grafana/loki:3.0.0`) | `loki` | `3100:3100` (Public) | Aggregates and stores forwarded log streams from the shipper. |
+| **Log Shipper** | Promtail (`grafana/promtail:3.0.0`) | `promtail` | *Internal Only* | Discovers container files, syslogs, and journals to ship to Loki. |
+| **Host Exporter** | Node Exporter (`prom/node-exporter:v1.8.0`) | `node-exporter` | `9100:9100` (Public) | Exports raw CPU, memory, network, and disk metrics from the host. |
+| **Container Exporter**| cAdvisor (`ghcr.io/google/cadvisor:0.56.2`)| `cadvisor` | `8080:8080` (Public) | Monitors resource usage of active Docker containers on the host. |
+| **Alert Gateway** | Alertmanager (`prom/alertmanager:v0.27.0`) | `alertmanager` | `9093:9093` (Public) | Handles alert deduplication, inhibition, and email/Slack routing. |
 
-All services are containerized inside a shared Docker bridge network (`monitoring`). Below is where each service runs and how it is accessed:
-
-*   **Grafana** (`http://localhost:3000`): Runs on host port `3000` to serve the custom-provisioned UI dashboards.
-*   **Prometheus** (`http://localhost:9090`): Runs on host port `9090` to collect, store, and query time-series metrics.
-*   **Alertmanager** (`http://localhost:9093`): Runs on host port `9093` to route alerts to external APIs and SMTP gateways.
-*   **Node Exporter** (`http://localhost:9100`): Runs on host port `9100` to expose hardware and OS metrics from the host machine.
-*   **cAdvisor** (`http://localhost:8080`): Runs on host port `8080` to collect resource usage and telemetry directly from Docker containers.
-*   **Loki** (`http://localhost:3100`): Runs on host port `3100` to receive and store aggregated log streams.
-*   **Promtail** (Internal only): Runs as a background service without exposed host ports, securely forwarding logs directly to Loki inside the internal Docker network.
+### Additional Tooling
+*   **Orchestration & Automation**: Docker Compose, Makefile
+*   **Source Control**: Git & GitHub
+*   **Notification Platforms**: Slack Webhook API, Gmail (SMTP integration over TLS)
 
 ---
 
