@@ -1,4 +1,4 @@
-# system-monitoring-with-alerting
+# System Monitoring with Alerting and Log Aggregation
 
 A containerized system monitoring, log aggregation, and alerting stack deployed locally using Docker Compose — featuring real-time hardware metrics scraping, centralized Docker/host log shipper pipeline, dynamic configuration secrets handling, and automated Slack/Email alert routing.
 
