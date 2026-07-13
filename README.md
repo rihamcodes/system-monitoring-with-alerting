@@ -6,7 +6,7 @@ Note: The focus of this repository is the DevOps and Infrastructure setup: the c
 
 ---
 
-🚀 Observability & Alerting Flow
+## 🚀 Observability & Alerting Workflow
 ```text
 Host Hardware & Containers (Node Exporter, cAdvisor, Log Files)
         │
@@ -29,7 +29,7 @@ Every service runs as a container under a single Docker bridge network. Promethe
 
 ---
 
-🛠️ Tech Stack
+## 🛠️ Technology Stack
 | Layer | Tools |
 | :--- | :--- |
 | **Metrics Collector** | Prometheus v2.51.2 |
@@ -44,7 +44,22 @@ Every service runs as a container under a single Docker bridge network. Promethe
 
 ---
 
-🔧 What I Built (DevOps Scope)
+## 🔌 Running Services & Port Access
+
+All services are containerized inside a shared Docker bridge network (`monitoring`). Below is where each service runs and how it is accessed:
+
+*   **Grafana** (`http://localhost:3000`): Runs on host port `3000` to serve the custom-provisioned UI dashboards.
+*   **Prometheus** (`http://localhost:9090`): Runs on host port `9090` to collect, store, and query time-series metrics.
+*   **Alertmanager** (`http://localhost:9093`): Runs on host port `9093` to route alerts to external APIs and SMTP gateways.
+*   **Node Exporter** (`http://localhost:9100`): Runs on host port `9100` to expose hardware and OS metrics from the host machine.
+*   **cAdvisor** (`http://localhost:8080`): Runs on host port `8080` to collect resource usage and telemetry directly from Docker containers.
+*   **Loki** (`http://localhost:3100`): Runs on host port `3100` to receive and store aggregated log streams.
+*   **Promtail** (Internal only): Runs as a background service without exposed host ports, securely forwarding logs directly to Loki inside the internal Docker network.
+
+---
+
+## 🔧 Platform Setup & Configuration Details
+
 ### 1. Prometheus Configurations & Rules (`prometheus/`)
 *   `prometheus.yml` — Sets up global scrape intervals and jobs. Employs `metric_relabel_configs` to drop metrics originating from non-Docker cgroups collected by cAdvisor, keeping only container-specific targets.
 *   `alert_rules.yml` — Implements custom alerting logic for system health: CPU (>80%), Memory (>75%), Disk (>90%), instance heartbeat status (`InstanceDown`), and container lifecycle (`ContainerRestarted`).
@@ -67,7 +82,7 @@ Every service runs as a container under a single Docker bridge network. Promethe
 
 ---
 
-📂 Repository Structure
+## 📂 Project Directory Structure
 ```text
 .
 ├── alertmanager/
@@ -95,7 +110,7 @@ Every service runs as a container under a single Docker bridge network. Promethe
 
 ---
 
-▶️ Running Locally
+## ▶️ Local Setup & Execution
 1. Clone the repository and navigate inside:
    ```bash
    git clone https://github.com/rihamcodes/system-monitoring-with-alerting.git
@@ -121,7 +136,7 @@ Every service runs as a container under a single Docker bridge network. Promethe
 
 ---
 
-📈 What I Learned
+## 📈 Key Learnings & Outcomes
 *   Deploying and networking a multi-service monitoring stack using Docker Compose.
 *   Collecting and parsing Docker container stdout logs, system logs, and systemd journals using Promtail.
 *   Injecting environment variables into applications that don't support native env-vars by writing custom container entrypoint shell wrappers.
@@ -132,7 +147,7 @@ Every service runs as a container under a single Docker bridge network. Promethe
 
 ---
 
-👤 Author
+## 👤 Contact & Credits
 Riham Ahamed
 
 *   GitHub: [github.com/rihamcodes](https://github.com/rihamcodes)
